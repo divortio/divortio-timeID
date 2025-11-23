@@ -1,0 +1,48 @@
+{
+  "name": "divortio-timeid",
+  "version": "1.0.0",
+  "description": "High-Performance Lexicographically Sortable Unique Identifiers",
+  "type": "module",
+  "main": "./src/timeID.js",
+  "exports": {
+    ".": "./src/timeID.js"
+  },
+  "scripts": {
+    "test": "node --test tests/timeID.test.js",
+    "bench": "node tests/timeID.benchmark.js",
+    "bench:save": "node tests/timeID.benchmark.js --save",
+    "bench:compare": "node tests/timeID.benchmark_comparison.js",
+    "bench:compare:save": "node tests/timeID.benchmark_comparison.js --save"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/divortio/divortio-timeID.git"
+  },
+  "keywords": [
+    "id",
+    "uuid",
+    "sortable",
+    "unique",
+    "timestamp",
+    "performance",
+    "lexicographical"
+  ],
+  "author": "Divortio",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/divortio/divortio-timeID/issues"
+  },
+  "homepage": "https://github.com/divortio/divortio-timeID#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
+    "benchmark": "^2.1.4",
+    "ksuid": "^3.0.0",
+    "nanoid": "^5.0.7",
+    "uid": "^2.0.2",
+    "ulid": "^2.3.0",
+    "uuid": "^10.0.0"
+  }
+}

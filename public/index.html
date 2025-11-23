@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeID - The Chronometer</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        charcoal: '#121212',
+                        panel: '#1A1A1A',
+                        cream: '#EAEAEA',
+                        amber: '#FFB000',
+                        red: '#FF5555',
+                        blue: '#44AAFF',
+                        glass: 'rgba(255, 255, 255, 0.03)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    dropShadow: {
+                        'glow': '0 0 8px rgba(255, 176, 0, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #121212;
+            color: #EAEAEA;
+            overflow-x: hidden;
+        }
+
+        .snap-container {
+            height: 100vh;
+            width: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .section {
+            min-height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .hero-animate {
+            animation: fadeIn 1.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .no-wrap { white-space: nowrap; }
+
+        .vfd-text {
+            font-family: 'Space Mono', monospace;
+            color: #FFB000;
+            text-shadow: 0 0 8px rgba(255, 176, 0, 0.5), 0 0 2px rgba(255, 176, 0, 0.3);
+        }
+
+        /* Fluid Typography */
+        .fluid-mono {
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            font-size: clamp(0.875rem, 2vw, 1.5rem);
+        }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 12px;
+            background: #FFB000; border-radius: 1px; margin-top: -8px;
+            box-shadow: 0 0 10px rgba(255, 176, 0, 0.5); cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; background: #333; border-radius: 2px;
+        }
+
+        .nav-arrow {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,0.2); cursor: pointer;
+            transition: color 0.3s, transform 0.3s; z-index: 20;
+        }
+        .nav-arrow:hover { color: #FFB000; transform: translateX(-50%) scale(1.2); }
+        .nav-up { top: 2rem; }
+        .nav-down { bottom: 2rem; }
+
+        .sort-active { color: #FFB000; }
+
+        /* Code Block Styling */
+        .code-block {
+            font-family: 'Space Mono', monospace;
+            background: #000;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            text-align: left;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            max-width: 100%;
+            position: relative;
+        }
+        .code-keyword { color: #ff79c6; }
+        .code-string { color: #f1fa8c; }
+        .code-func { color: #8be9fd; }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #EAEAEA;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Converter Input Styling */
+        .conv-input-group {
+            position: relative;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .conv-input-group:focus-within {
+            border-color: #FFB000;
+            box-shadow: 0 0 15px rgba(255, 176, 0, 0.1);
+        }
+        .conv-input-group.error {
+            border-color: #FF5555;
+            box-shadow: 0 0 15px rgba(255, 85, 85, 0.2);
+        }
+        .conv-input-wrapper {
+            display: flex;
+            align-items: center;
+            /* Subtle background for editable feel */
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid transparent;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .conv-input-wrapper:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .conv-input-wrapper:focus-within {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .conv-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #FFB000;
+            outline: none;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .edit-icon {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-left: 0.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .conv-input-wrapper:hover .edit-icon,
+        .conv-input:focus + .edit-icon {
+            color: #FFB000;
+        }
+        .conv-label {
+            display: block;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .conv-desc {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.3);
+            text-align: right;
+            margin-top: auto;
+        }
+        .error-msg {
+            color: #FF5555;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+            opacity: 0;
+            transition: opacity 0.2s;
+            position: absolute;
+            bottom: 0.2rem;
+            left: 1.5rem;
+        }
+        .conv-input-group.error .error-msg {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<!-- INLINED LIBRARY LOGIC -->
+<script>
+    const CHAR_DICT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~';
+    const ASCII_LOOKUP = new Int8Array(128).fill(-1);
+    for (let i = 0; i < CHAR_DICT.length; i++) ASCII_LOOKUP[CHAR_DICT.charCodeAt(i)] = i;
+
+    const encodeTime = (time) => {
+        let ts = typeof time === 'number' ? time : (time instanceof Date ? time.getTime() : null);
+        if (ts === null || ts < 0) throw new TypeError(`Expected valid timestamp`);
+
+        let c7 = CHAR_DICT[ts % 64]; ts = Math.floor(ts / 64);
+        let c6 = CHAR_DICT[ts % 64]; ts = Math.floor(ts / 64);
+        let c5 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+        let c4 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+        let c3 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+        let c2 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+        let c1 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+        let c0 = CHAR_DICT[ts & 0x3F];
+
+        return c0 + c1 + c2 + c3 + c4 + c5 + c6 + c7;
+    }
+
+    const decodeTime = (tid) => {
+        if (!tid || typeof tid !== 'string' || tid.length < 8) return null;
+        let ts = 0;
+        for (let i = 0; i < 8; i++) {
+            const code = tid.charCodeAt(i);
+            if (code > 127) return null;
+            const val = ASCII_LOOKUP[code];
+            if (val === -1) return null;
+            ts = ts * 64 + val;
+        }
+        return ts;
+    }
+
+    window.TimeID = { encodeTime, decodeTime };
+</script>
+
+
+<div class="snap-container" id="main-scroll">
+
+    <!-- 1. HERO -->
+    <section class="section" id="sect-1">
+        <!-- Divort.io Branding (Top Left) -->
+        <a href="https://divort.io" class="absolute top-6 left-6 md:top-8 md:left-8 z-50 text-white/50 hover:text-amber transition-colors font-mono font-bold tracking-tight text-sm no-underline">
+            Divort.io
+        </a>
+
+        <!-- GitHub Link (Top Right) -->
+        <a href="https://github.com/divortio/divortio-timeID" class="absolute top-6 right-6 md:top-8 md:right-8 z-50 text-white/30 hover:text-amber transition-colors flex items-center gap-2 group">
+            <span class="text-xs font-mono font-bold opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">Source</span>
+            <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor" class="group-hover:scale-110 transition-transform">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+        </a>
+
+        <div class="text-center space-y-6 z-10 px-4">
+            <h1 class="text-4xl md:text-7xl font-bold tracking-tighter text-cream hero-animate no-wrap">
+                Do you know what <br />
+                <span class="vfd-text">tID</span> it is?
+            </h1>
+        </div>
+        <a href="#sect-2" class="nav-arrow nav-down material-symbols-outlined text-4xl animate-bounce">keyboard_arrow_down</a>
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:50px_50px] opacity-50 pointer-events-none"></div>
+    </section>
+
+
+    <!-- 2. CURRENT tID -->
+    <section class="section bg-panel" id="sect-2">
+        <a href="#sect-1" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="text-center w-full max-w-6xl px-4">
+            <div class="font-sans text-cream/60 mb-8 text-xl md:text-2xl">The current tID is:</div>
+            <div id="current-tid-display" class="vfd-text text-6xl md:text-9xl font-bold tracking-widest tabular-nums no-wrap">
+                Loading...
+            </div>
+        </div>
+
+        <a href="#sect-3" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 3. CURRENT tID & TIME -->
+    <section class="section" id="sect-3">
+        <a href="#sect-2" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="text-center space-y-12 w-full max-w-5xl px-4">
+            <h2 class="text-4xl md:text-6xl font-bold text-cream">tID is <span class="text-amber">Time!</span></h2>
+
+            <div class="space-y-12">
+                <!-- tID -->
+                <div class="space-y-2">
+                    <div id="dual-tid" class="vfd-text text-5xl md:text-7xl no-wrap">...</div>
+                    <p class="text-sm text-cream/40">timeID is "Time" encoded as an 8 character string with millisecond precision</p>
+                </div>
+
+                <!-- ISO -->
+                <div class="space-y-2">
+                    <div id="dual-iso" class="vfd-text text-amber/70 text-3xl md:text-5xl no-wrap">...</div>
+                    <p class="text-sm text-cream/40">Standard ISO 8601</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="#sect-4" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 4. COMPARISON -->
+    <section class="section bg-panel" id="sect-4">
+        <a href="#sect-3" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="w-full max-w-4xl text-center space-y-12 px-4">
+            <h2 class="text-3xl md:text-5xl font-bold leading-tight">
+                The same millisecond precision <br>
+                at <span class="text-amber">33% the size</span>
+            </h2>
+
+            <div class="space-y-8 text-left font-mono text-sm md:text-base">
+
+                <!-- ISO -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-cream/60">
+                        <span>ISO 8601</span>
+                        <span>24 Bytes</span>
+                    </div>
+                    <div class="h-14 w-full bg-black rounded-lg overflow-hidden relative flex items-center px-4 border border-white/5">
+                        <div class="absolute inset-0 bg-red w-full"></div>
+                        <span class="relative z-10 text-black font-bold no-wrap" id="comp-iso">...</span>
+                    </div>
+                </div>
+
+                <!-- UNIX -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-cream/60">
+                        <span>Unix Timestamp (ms)</span>
+                        <span>13 Bytes</span>
+                    </div>
+                    <div class="h-14 w-full bg-black rounded-lg overflow-hidden relative flex items-center px-4 border border-white/5">
+                        <div class="absolute inset-0 bg-blue w-[54%]"></div>
+                        <span class="relative z-10 text-black font-bold no-wrap" id="comp-unix">...</span>
+                    </div>
+                </div>
+
+                <!-- tID -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-amber">
+                        <span class="font-bold">TimeID</span>
+                        <span class="font-bold">8 Bytes</span>
+                    </div>
+                    <div class="h-14 w-full bg-black rounded-lg overflow-hidden relative flex items-center px-4 border border-amber/30 shadow-[0_0_15px_rgba(255,176,0,0.1)]">
+                        <div class="absolute inset-0 bg-amber w-[33%]"></div>
+                        <span class="relative z-10 text-black font-bold no-wrap" id="comp-tid">...</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <a href="#sect-5" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 5. ANATOMY -->
+    <section class="section" id="sect-5">
+        <a href="#sect-4" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="w-full max-w-4xl space-y-10 px-4">
+            <div class="text-center relative">
+                <h2 class="text-3xl font-bold mb-2">Anatomy of Time</h2>
+                <p class="text-cream/50 mb-2">Modify the timeline to see how tID encodes resolution.</p>
+            </div>
+
+            <div class="flex justify-center">
+                <button id="btn-reset-time" class="bg-white/10 hover:bg-amber hover:text-black text-cream px-4 py-2 rounded font-mono text-sm transition-colors border border-white/10">
+                    Reset to Current Time
+                </button>
+            </div>
+
+            <div class="bg-black border border-white/10 rounded-2xl p-8 text-center relative group">
+                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('anatomy-tid').innerText)">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span> Copy
+                </button>
+                <div id="anatomy-iso" class="text-red font-mono text-xl mb-4 no-wrap">Loading...</div>
+                <div id="anatomy-tid" class="vfd-text text-6xl md:text-8xl font-bold tracking-wider no-wrap">Loading...</div>
+            </div>
+
+            <div class="text-cream/40 text-sm max-w-2xl mx-auto text-center">
+                <p>High impact changes (Year/Month) drastically change the ID's prefix.</p>
+                <p class="mt-1">Low impact changes (Milliseconds) spin the suffix rapidly.</p>
+            </div>
+
+            <div class="grid gap-6 bg-panel p-8 rounded-xl border border-white/5">
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-mono text-cream/60"><span>YEAR</span> <span id="val-year" class="text-amber">2025</span></div>
+                    <input type="range" id="s-year" min="1970" max="2100" value="2025" class="w-full">
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-cream/60"><span>MONTH</span> <span id="val-month" class="text-amber">1</span></div>
+                        <input type="range" id="s-month" min="0" max="11" value="0" class="w-full">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-cream/60"><span>DAY</span> <span id="val-day" class="text-amber">1</span></div>
+                        <input type="range" id="s-day" min="1" max="31" value="1" class="w-full">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-cream/60"><span>HOUR</span> <span id="val-hour" class="text-amber">12</span></div>
+                        <input type="range" id="s-hour" min="0" max="23" value="12" class="w-full">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-cream/60"><span>MINUTE</span> <span id="val-min" class="text-amber">00</span></div>
+                        <input type="range" id="s-min" min="0" max="59" value="0" class="w-full">
+                    </div>
+                </div>
+                <div class="space-y-2 pt-4 border-t border-white/5">
+                    <div class="flex justify-between text-xs font-mono text-cream/60"><span>SECOND</span> <span id="val-sec" class="text-amber">00</span></div>
+                    <input type="range" id="s-sec" min="0" max="59" value="0" class="w-full">
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-xs font-mono text-cream/60"><span>MILLISECOND</span> <span id="val-ms" class="text-amber">000</span></div>
+                    <input type="range" id="s-ms" min="0" max="999" value="0" class="w-full">
+                </div>
+            </div>
+        </div>
+
+        <a href="#sect-6" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 6. SORTING -->
+    <section class="section bg-panel" id="sect-6">
+        <a href="#sect-7" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="w-full max-w-6xl text-center mb-8 px-4">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4 text-amber" id="sort-hero">Oh no! Our time got all mixed up!</h2>
+            <p class="text-cream/50 mb-8">Let's try sorting on timeID.</p>
+
+            <button id="btn-sort" class="bg-white/10 hover:bg-amber hover:text-black text-cream font-mono px-8 py-3 rounded transition-all mb-8 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+                SORT TABLE (TimeID Desc)
+            </button>
+
+            <div class="overflow-hidden rounded-lg border border-white/10 bg-charcoal text-left">
+                <table class="w-full font-mono text-xs md:text-base table-fixed">
+                    <thead class="bg-white/5 text-cream/40 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="p-4 cursor-pointer hover:text-amber select-none w-1/4" onclick="toggleSort('tid')">TimeID <span id="arr-tid">↕</span></th>
+                        <th class="p-4 cursor-pointer hover:text-amber select-none w-1/3 hidden md:table-cell" onclick="toggleSort('iso')">ISO 8601 <span id="arr-iso">↕</span></th>
+                        <th class="p-4 cursor-pointer hover:text-amber select-none w-1/4 text-right" onclick="toggleSort('human')">Elapsed <span id="arr-human">↕</span></th>
+                        <th class="p-4 cursor-pointer hover:text-amber select-none w-1/6 text-right" onclick="toggleSort('amt')">Amount <span id="arr-amt">↕</span></th>
+                    </tr>
+                    </thead>
+                    <tbody id="sort-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <a href="#sect-7" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 7. ENCODE & DECODE TIME -->
+    <section class="section" id="sect-7">
+        <a href="#sect-6" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="w-full max-w-6xl space-y-12 px-4">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold mb-4">Encode & Decode Time</h2>
+                <p class="text-cream/50 mb-6">Copy, Paste, or modify Time</p>
+
+                <button id="btn-conv-reset" class="bg-white/10 hover:bg-amber hover:text-black text-cream px-4 py-2 rounded font-mono text-sm transition-colors border border-white/10 mb-4">
+                    Reset to Current Time
+                </button>
+
+                <!-- Human Readable Timestamp -->
+                <div id="conv-human-time" class="font-mono text-amber text-sm md:text-base leading-relaxed opacity-90">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- Converter Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+                <!-- Row 1 Full Width: TimeID -->
+                <div id="grp-conv-tid" class="conv-input-group group h-full lg:col-span-2">
+                    <button class="copy-btn" onclick="copyToClipboard(document.getElementById('inp-conv-tid').value)">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                    </button>
+                    <label class="conv-label">
+                        <span class="material-symbols-outlined text-sm">fingerprint</span> TimeID
+                    </label>
+                    <div class="conv-input-wrapper">
+                        <input type="text" id="inp-conv-tid" class="conv-input fluid-mono" placeholder="08kL_1z2" spellcheck="false">
+                        <span class="material-symbols-outlined edit-icon">edit</span>
+                    </div>
+                    <div class="conv-desc">8 chars • Base64 • ASCII Sort Safe</div>
+                    <div id="err-conv-tid" class="error-msg">Invalid characters in ID</div>
+                </div>
+
+                <!-- Row 2 Left: Unix Time -->
+                <div id="grp-conv-unix" class="conv-input-group group h-full">
+                    <button class="copy-btn" onclick="copyToClipboard(document.getElementById('inp-conv-unix').value)">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                    </button>
+                    <label class="conv-label">
+                        <span class="material-symbols-outlined text-sm">code</span> Unix Timestamp
+                    </label>
+                    <div class="conv-input-wrapper">
+                        <input type="text" id="inp-conv-unix" class="conv-input fluid-mono" placeholder="1732145..." spellcheck="false">
+                        <span class="material-symbols-outlined edit-icon">edit</span>
+                    </div>
+                    <div class="conv-desc">Milliseconds since UNIX epoch at 1970-01-01</div>
+                    <div id="err-conv-unix" class="error-msg">Invalid number</div>
+                </div>
+
+                <!-- Row 2 Right: ISO Time -->
+                <div id="grp-conv-iso" class="conv-input-group group h-full">
+                    <button class="copy-btn" onclick="copyToClipboard(document.getElementById('inp-conv-iso').value)">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span>
+                    </button>
+                    <label class="conv-label">
+                        <span class="material-symbols-outlined text-sm">schedule</span> ISO 8601
+                    </label>
+                    <div class="conv-input-wrapper">
+                        <input type="text" id="inp-conv-iso" class="conv-input fluid-mono" placeholder="2025-01-01T..." spellcheck="false">
+                        <span class="material-symbols-outlined edit-icon">edit</span>
+                    </div>
+                    <div class="conv-desc">YYYY-MM-DDTHH:mm:ss.sssZ</div>
+                    <div id="err-conv-iso" class="error-msg">Invalid date format</div>
+                </div>
+
+            </div>
+        </div>
+
+        <a href="#sect-8" class="nav-arrow nav-down material-symbols-outlined text-4xl">keyboard_arrow_down</a>
+    </section>
+
+
+    <!-- 8. USAGE & FOOTER -->
+    <section class="section bg-panel" id="sect-8">
+        <a href="#sect-7" class="nav-arrow nav-up material-symbols-outlined text-4xl">keyboard_arrow_up</a>
+
+        <div class="w-full max-w-3xl px-4 space-y-12">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold mb-4">Start compressing time NOW()</h2>
+                <p class="text-cream/50">Zero dependencies. Pure JavaScript.</p>
+            </div>
+
+            <!-- GitHub Source Link -->
+            <div class="flex justify-center">
+                <a href="https://github.com/divortio/divortio-timeID" class="flex items-center gap-2 text-amber hover:text-white transition-colors border border-amber/30 rounded-full px-6 py-2 bg-amber/5 hover:bg-amber/10">
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    <span class="font-mono font-bold">View Source on GitHub</span>
+                </a>
+            </div>
+
+            <div class="code-block relative group">
+                <button class="copy-btn" onclick="copyToClipboard(`import { timeID } from 'divortio-timeid';\n\n// Generate 8-char timestamp string\nconst id = timeID.newID(); \n\nconsole.log(id); // e.g., &quot;08kL_1z2&quot;`)">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span> Copy
+                </button>
+                <div class="absolute top-2 right-16 text-xs text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">ESM / TypeScript</div>
+                <pre>
+<span class="code-keyword">import</span> { <span class="code-func">timeID</span> } <span class="code-keyword">from</span> <span class="code-string">'divortio-timeid'</span>;
+
+<span class="comment">// Generate 8-char timestamp string</span>
+<span class="code-keyword">const</span> id = <span class="code-func">timeID</span>.newID();
+
+<span class="code-keyword">console</span>.log(id); <span class="comment">// e.g., "08kL_1z2"</span>
+</pre>
+            </div>
+
+            <div class="text-center space-y-8">
+                <div class="bg-black p-4 rounded-xl border border-amber/20 inline-block max-w-full overflow-x-auto relative group">
+                    <button class="copy-btn" onclick="copyToClipboard('git clone https://github.com/divortio/divortio-timeID.git')">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span> Copy
+                    </button>
+                    <code class="font-mono text-amber cursor-pointer text-sm md:text-lg whitespace-nowrap pr-16">
+                        $ git clone https://github.com/divortio/divortio-timeID.git
+                    </code>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <h3 class="text-xl font-bold mb-2">OR</h3>
+                <p class="text-cream/50 text-sm mb-4">Copy and paste the `lite` version which runs on this page</p>
+            </div>
+
+            <div class="code-block relative group">
+                <button class="copy-btn" onclick="copyToClipboard(document.getElementById('lite-code').innerText)">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">content_copy</span> Copy
+                </button>
+                <div class="absolute top-2 right-16 text-xs text-white/30 opacity-0 group-hover:opacity-100 transition-opacity">ESM / TypeScript</div>
+                <pre id="lite-code">
+<span class="code-keyword">const</span> CHAR_DICT = <span class="code-string">'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~'</span>;
+<span class="code-keyword">const</span> ASCII_LOOKUP = <span class="code-keyword">new</span> <span class="code-func">Int8Array</span>(128).fill(-1);
+<span class="code-keyword">for</span> (<span class="code-keyword">let</span> i = 0; i < CHAR_DICT.length; i++) ASCII_LOOKUP[CHAR_DICT.charCodeAt(i)] = i;
+
+<span class="comment">// Deterministic Encoding Only</span>
+<span class="code-keyword">const</span> encodeTime = (time) => {
+    <span class="code-keyword">let</span> ts = <span class="code-keyword">typeof</span> time === <span class="code-string">'number'</span> ? time : (time <span class="code-keyword">instanceof</span> <span class="code-func">Date</span> ? time.getTime() : <span class="code-keyword">null</span>);
+    <span class="code-keyword">if</span> (ts === <span class="code-keyword">null</span> || ts < 0) <span class="code-keyword">throw new</span> <span class="code-func">TypeError</span>(<span class="code-string">`Expected valid timestamp`</span>);
+
+    <span class="comment">// Base64 Encoding (48 bits -> 8 chars)</span>
+    <span class="code-keyword">let</span> c7 = CHAR_DICT[ts % 64]; ts = <span class="code-func">Math</span>.floor(ts / 64);
+    <span class="code-keyword">let</span> c6 = CHAR_DICT[ts % 64]; ts = <span class="code-func">Math</span>.floor(ts / 64);
+    <span class="code-keyword">let</span> c5 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+    <span class="code-keyword">let</span> c4 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+    <span class="code-keyword">let</span> c3 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+    <span class="code-keyword">let</span> c2 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+    <span class="code-keyword">let</span> c1 = CHAR_DICT[ts & 0x3F]; ts >>>= 6;
+    <span class="code-keyword">let</span> c0 = CHAR_DICT[ts & 0x3F];
+
+    <span class="code-keyword">return</span> c0 + c1 + c2 + c3 + c4 + c5 + c6 + c7;
+}
+
+<span class="comment">// Added Decode Logic for Converter</span>
+<span class="code-keyword">const</span> decodeTime = (tid) => {
+    <span class="code-keyword">if</span> (!tid || <span class="code-keyword">typeof</span> tid !== <span class="code-string">'string'</span> || tid.length < 8) <span class="code-keyword">return null</span>;
+    <span class="code-keyword">let</span> ts = 0;
+    <span class="code-keyword">for</span> (<span class="code-keyword">let</span> i = 0; i < 8; i++) {
+        <span class="code-keyword">const</span> code = tid.charCodeAt(i);
+        <span class="code-keyword">if</span> (code > 127) <span class="code-keyword">return null</span>;
+        <span class="code-keyword">const</span> val = ASCII_LOOKUP[code];
+        <span class="code-keyword">if</span> (val === -1) <span class="code-keyword">return null</span>;
+        ts = ts * 64 + val;
+    }
+    <span class="code-keyword">return</span> ts;
+}
+
+<span class="comment">// Expose minimal API</span>
+<span class="code-keyword">window</span>.TimeID = { encodeTime, decodeTime };
+</pre>
+            </div>
+
+            <div class="flex gap-8 justify-center text-cream/40 pt-8">
+                <a href="https://github.com/divortio/divortio-timeID" class="hover:text-amber transition-colors">GitHub</a>
+                <a href="./docs/README.md" class="hover:text-amber transition-colors">Docs</a>
+            </div>
+
+            <p class="text-center text-xs text-cream/20 mt-12 font-mono">
+                <span class="block font-bold text-sm mb-1">timeID</span>
+                by <a href="https://divort.io" class="font-bold underline hover:text-amber transition-colors">Divort.io</a>
+            </p>
+        </div>
+    </section>
+
+</div>
+
+<!-- APP LOGIC -->
+<script>
+    async function copyToClipboard(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            alert('Copied to clipboard!');
+        } catch (err) {
+            console.error('Failed to copy!', err);
+        }
+    }
+
+    const getId = (d) => window.TimeID.encodeTime(d || new Date());
+    const els = {
+        t2: document.getElementById('current-tid-display'),
+        t3_tid: document.getElementById('dual-tid'),
+        t3_iso: document.getElementById('dual-iso'),
+        t4_iso: document.getElementById('comp-iso'),
+        t4_unix: document.getElementById('comp-unix'),
+        t4_tid: document.getElementById('comp-tid'),
+    };
+
+    function tick() {
+        const d = new Date();
+        const id = getId(d);
+        const iso = d.toISOString();
+        const unix = String(d.getTime());
+
+        els.t2.innerText = id;
+        els.t3_tid.innerText = id;
+        els.t3_iso.innerText = iso;
+        els.t4_iso.innerText = iso;
+        els.t4_unix.innerText = unix;
+        els.t4_tid.innerText = id;
+
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    const ana = {
+        d: document.getElementById('anatomy-tid'),
+        iso: document.getElementById('anatomy-iso'),
+        inputs: {
+            y: document.getElementById('s-year'), m: document.getElementById('s-month'),
+            d: document.getElementById('s-day'), h: document.getElementById('s-hour'),
+            min: document.getElementById('s-min'), s: document.getElementById('s-sec'),
+            ms: document.getElementById('s-ms'),
+        },
+        lbl: {
+            y: document.getElementById('val-year'), m: document.getElementById('val-month'),
+            d: document.getElementById('val-day'), h: document.getElementById('val-hour'),
+            min: document.getElementById('val-min'), s: document.getElementById('val-sec'),
+            ms: document.getElementById('val-ms'),
+        }
+    };
+
+    function setAnatomyFromDate(d) {
+        ana.inputs.y.value = d.getFullYear(); ana.inputs.m.value = d.getMonth();
+        ana.inputs.d.value = d.getDate(); ana.inputs.h.value = d.getHours();
+        ana.inputs.min.value = d.getMinutes(); ana.inputs.s.value = d.getSeconds();
+        ana.inputs.ms.value = d.getMilliseconds();
+        updateAnatomy();
+    }
+
+    function updateAnatomy() {
+        const date = new Date(
+            ana.inputs.y.value, ana.inputs.m.value, ana.inputs.d.value,
+            ana.inputs.h.value, ana.inputs.min.value, ana.inputs.s.value, ana.inputs.ms.value
+        );
+        ana.lbl.y.innerText = ana.inputs.y.value;
+        ana.lbl.m.innerText = parseInt(ana.inputs.m.value) + 1;
+        ana.lbl.d.innerText = ana.inputs.d.value;
+        ana.lbl.h.innerText = ana.inputs.h.value.toString().padStart(2,'0');
+        ana.lbl.min.innerText = ana.inputs.min.value.toString().padStart(2,'0');
+        ana.lbl.s.innerText = ana.inputs.s.value.toString().padStart(2,'0');
+        ana.lbl.ms.innerText = ana.inputs.ms.value.toString().padStart(3,'0');
+
+        ana.iso.innerText = date.toISOString();
+        ana.d.innerText = getId(date);
+    }
+    Object.values(ana.inputs).forEach(i => i.addEventListener('input', updateAnatomy));
+    setAnatomyFromDate(new Date());
+    document.getElementById('btn-reset-time').addEventListener('click', () => setAnatomyFromDate(new Date()));
+
+    const tbody = document.getElementById('sort-body');
+    const sortHero = document.getElementById('sort-hero');
+    const base = Date.now();
+    const rows = [
+        { rel: "7 days ago", ms: base - (7 * 24 * 3600 * 1000), amt: 15 },
+        { rel: "1 day ago", ms: base - (24 * 3600 * 1000), amt: 99 },
+        { rel: "12 hours ago", ms: base - (12 * 3600 * 1000), amt: 42 },
+        { rel: "1 minute ago", ms: base - (60 * 1000), amt: 5 },
+        { rel: "3 days in future", ms: base + (3 * 24 * 3600 * 1000), amt: 100 }
+    ];
+    let tableData = rows.map(r => {
+        const d = new Date(r.ms);
+        return { tid: getId(d), iso: d.toISOString(), human: r.rel, raw: r.ms, amt: r.amt };
+    });
+    let sortState = { key: null, dir: 'asc' };
+    tableData.sort(() => Math.random() - 0.5);
+
+    function renderTable() {
+        tbody.innerHTML = '';
+        tableData.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-white/5 transition-colors border-b border-white/5 last:border-0';
+            tr.innerHTML = `
+                    <td class="p-4 text-amber font-bold no-wrap">${row.tid}</td>
+                    <td class="p-4 text-cream/60 hidden md:table-cell no-wrap">${row.iso}</td>
+                    <td class="p-4 text-right text-cream/80 no-wrap">${row.human}</td>
+                    <td class="p-4 text-right text-green-400 font-mono no-wrap">$${row.amt}.00</td>
+                `;
+            tbody.appendChild(tr);
+        });
+        ['tid', 'iso', 'human', 'amt'].forEach(k => {
+            const arrow = document.getElementById('arr-' + k);
+            if (sortState.key === k) {
+                arrow.innerText = sortState.dir === 'asc' ? '↑' : '↓';
+                arrow.parentElement.classList.add('sort-active');
+            } else {
+                arrow.innerText = '↕';
+                arrow.parentElement.classList.remove('sort-active');
+            }
+        });
+    }
+    renderTable();
+
+    window.toggleSort = (key) => {
+        if (sortState.key === key) {
+            sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.key = key;
+            sortState.dir = 'asc';
+        }
+        const d = sortState.dir === 'asc' ? 1 : -1;
+        tableData.sort((a, b) => {
+            if (key === 'tid') return (a.tid < b.tid ? -1 : 1) * d;
+            if (key === 'iso') return (a.iso < b.iso ? -1 : 1) * d;
+            if (key === 'human') return (a.raw - b.raw) * d;
+            if (key === 'amt') return (a.amt - b.amt) * d;
+            return 0;
+        });
+        renderTable();
+        sortHero.innerHTML = `TimeID sorts time <br> with millisecond precision!`;
+    }
+
+    document.getElementById('btn-sort').addEventListener('click', () => {
+        sortState.key = 'tid';
+        sortState.dir = 'desc';
+        tableData.sort((a,b) => (a.tid < b.tid ? 1 : -1));
+        renderTable();
+        sortHero.innerHTML = "TimeID sorts time <br> with millisecond precision!";
+    });
+
+    // Converter Logic
+    const conv = {
+        tid: {
+            grp: document.getElementById('grp-conv-tid'),
+            inp: document.getElementById('inp-conv-tid'),
+            err: document.getElementById('err-conv-tid')
+        },
+        iso: {
+            grp: document.getElementById('grp-conv-iso'),
+            inp: document.getElementById('inp-conv-iso'),
+            err: document.getElementById('err-conv-iso')
+        },
+        unix: {
+            grp: document.getElementById('grp-conv-unix'),
+            inp: document.getElementById('inp-conv-unix'),
+            err: document.getElementById('err-conv-unix')
+        },
+        btnReset: document.getElementById('btn-conv-reset'),
+        human: document.getElementById('conv-human-time')
+    };
+
+    function initConverter() {
+        const now = new Date();
+        setConverterTime(now);
+    }
+
+    function updateHumanTime(d) {
+        if (isNaN(d.getTime())) {
+            conv.human.innerHTML = "";
+            return;
+        }
+
+        // Line 1: Weekday, Month Day(suffix), Year
+        const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        // Add suffix logic? Intl doesn't do ordinal suffix natively easily without custom logic.
+        // Let's stick to standard long date for robustness or simple suffix logic.
+
+        const day = d.getDate();
+        const suffix = (day) => {
+            if (day > 3 && day < 21) return 'th';
+            switch (day % 10) {
+                case 1:  return "st";
+                case 2:  return "nd";
+                case 3:  return "rd";
+                default: return "th";
+            }
+        };
+
+        // Manual formatting for exact "Thursday, November 20th, 2025"
+        const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        const line1 = `${weekdays[d.getDay()]}, ${months[d.getMonth()]} ${day}${suffix(day)}, ${d.getFullYear()}`;
+
+        // Line 2: 10:55 PM, 24 sec, and 399 ms
+        let hours = d.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        const seconds = d.getSeconds();
+        const ms = d.getMilliseconds();
+
+        const line2 = `${hours}:${minutes} ${ampm}, ${seconds} sec, and ${ms} ms`;
+
+        conv.human.innerHTML = `${line1} <br> ${line2}`;
+    }
+
+    function setConverterTime(d) {
+        conv.tid.inp.value = window.TimeID.encodeTime(d);
+        conv.iso.inp.value = d.toISOString();
+        conv.unix.inp.value = d.getTime();
+        updateHumanTime(d);
+        clearErrors();
+    }
+
+    function clearErrors() {
+        conv.tid.grp.classList.remove('error');
+        conv.iso.grp.classList.remove('error');
+        conv.unix.grp.classList.remove('error');
+    }
+
+    // tID Handler
+    conv.tid.inp.addEventListener('input', (e) => {
+        const val = e.target.value;
+        clearErrors();
+        if (val.length !== 8) {
+            if (val.length > 8) setError(conv.tid, "ID must be exactly 8 chars");
+            return;
+        }
+        for (let i=0; i<val.length; i++) {
+            if (CHAR_DICT.indexOf(val[i]) === -1) {
+                setError(conv.tid, "Invalid character found");
+                return;
+            }
+        }
+        const ts = window.TimeID.decodeTime(val);
+        if (ts) {
+            const d = new Date(ts);
+            if (!isNaN(d.getTime())) {
+                conv.iso.inp.value = d.toISOString();
+                conv.unix.inp.value = d.getTime();
+                updateHumanTime(d);
+            } else setError(conv.tid, "Invalid timestamp");
+        } else setError(conv.tid, "Decode error");
+    });
+
+    // ISO Handler
+    conv.iso.inp.addEventListener('input', (e) => {
+        const val = e.target.value;
+        clearErrors();
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+            try {
+                conv.tid.inp.value = window.TimeID.encodeTime(d);
+                conv.unix.inp.value = d.getTime();
+                updateHumanTime(d);
+            } catch (err) { setError(conv.iso, "Date out of range"); }
+        } else setError(conv.iso, "Invalid Date format");
+    });
+
+    // Unix Handler
+    conv.unix.inp.addEventListener('input', (e) => {
+        const val = e.target.value;
+        clearErrors();
+
+        // Check if numbers only
+        if (!/^\d+$/.test(val)) {
+            setError(conv.unix, "Must be numeric");
+            return;
+        }
+
+        const num = parseInt(val);
+        const d = new Date(num);
+        if (!isNaN(d.getTime())) {
+            try {
+                conv.tid.inp.value = window.TimeID.encodeTime(d);
+                conv.iso.inp.value = d.toISOString();
+                updateHumanTime(d);
+            } catch (err) { setError(conv.unix, "Date out of range"); }
+        } else setError(conv.unix, "Invalid timestamp");
+    });
+
+    function setError(field, msg) {
+        field.grp.classList.add('error');
+        field.err.innerText = msg;
+    }
+
+    conv.btnReset.addEventListener('click', () => setConverterTime(new Date()));
+
+    initConverter();
+
+</script>
+</body>
+</html>
