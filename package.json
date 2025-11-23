@@ -12,7 +12,8 @@
     "bench": "node tests/timeID.benchmark.js",
     "bench:save": "node tests/timeID.benchmark.js --save",
     "bench:compare": "node tests/timeID.benchmark_comparison.js",
-    "bench:compare:save": "node tests/timeID.benchmark_comparison.js --save"
+    "bench:compare:save": "node tests/timeID.benchmark_comparison.js --save",
+    "deploy": "wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -43,6 +44,7 @@
     "nanoid": "^5.0.7",
     "uid": "^2.0.2",
     "ulid": "^2.3.0",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "wrangler": "^3.0.0"
   }
 }

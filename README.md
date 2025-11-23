@@ -7,15 +7,6 @@
 
 **divortio-timeID** is a zero-dependency library for generating unique IDs that are **sortable by creation time**. It combines a high-precision timestamp with random characters, making it ideal for database primary keys where chronological sorting is required without a separate index.
 
-## 📖 The Story
-
-### The Problem
-"I wanted sortable IDs (like ULID) but found the reference implementations too slow for high-throughput systems."
-
-### The Solution
-"I built TimeID using SFC32 and a custom bitwise-batched Base64 encoding."
-
-### The Result
 "It generates sortable, collision-resistant IDs at **4 Million ops/sec**—matching UUID v4 and beating NanoID, while maintaining chronological sorting."
 
 ## ✨ Features
