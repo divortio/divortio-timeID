@@ -18,7 +18,7 @@ head_sampling_rate = 1
 mode = "smart"
 
 [[routes]]
-pattern = "time.divort.io"
+pattern = "time.divort.io/*"
 custom_domain = true
 
 compatibility_flags = ["nodejs_compat", "nodejs_als"]
