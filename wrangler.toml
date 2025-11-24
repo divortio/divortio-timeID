@@ -1,5 +1,5 @@
 name = "divortio-timeid"
-main = "src/worker.js"
+main = "src/worker.mjs"
 compatibility_flags = ["nodejs_compat", "nodejs_als"]
 compatibility_date = "2025-10-29"
 workers_dev = false
@@ -8,7 +8,7 @@ minify = true
 
 # Serve the root directory (where index.html lives) as static assets
 [assets]
-directory = "."
+directory = "./public"
 binding = "ASSETS"
 
 # Deployment
