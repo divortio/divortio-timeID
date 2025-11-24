@@ -1,4 +1,4 @@
-name = "divortio-timeid-demo"
+name = "divortio-timeid"
 main = "src/worker.js"
 compatibility_flags = ["nodejs_compat", "nodejs_als"]
 compatibility_date = "2025-10-29"
